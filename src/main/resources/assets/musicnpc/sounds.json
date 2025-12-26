@@ -1,0 +1,10 @@
+{
+  "music.test": {
+    "sounds": [
+      {
+        "name": "musicnpc:test",
+        "stream": true
+      }
+    ]
+  }
+}
