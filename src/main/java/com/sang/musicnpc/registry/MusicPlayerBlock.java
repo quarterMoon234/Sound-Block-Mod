@@ -1,8 +1,9 @@
 package com.sang.musicnpc.registry;
 
+import com.sang.musicnpc.network.ModNetwork;
+import com.sang.musicnpc.network.OpenMusicGuiPacket;
 import com.sang.musicnpc.server.MusicBlockIndex;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -29,20 +30,21 @@ public class MusicPlayerBlock extends Block implements EntityBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos,
                                  Player player, InteractionHand hand, BlockHitResult hit) {
+
         if (level.isClientSide) return InteractionResult.SUCCESS;
 
         BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof MusicPlayerBlockEntity musicBe) {
-            // 1차: test만 고정 (나중에 GUI/목록 확장)
-            musicBe.setSoundKey("music.test");
-
-            if (player instanceof ServerPlayer sp) {
-                sp.displayClientMessage(Component.literal("Music set to: music.test"), true);
-            }
-            return InteractionResult.CONSUME;
+        if (!(be instanceof MusicPlayerBlockEntity musicBe)) {
+            return InteractionResult.PASS;
         }
 
-        return InteractionResult.PASS;
+        // ✅ 기존: musicBe.setSoundKey("music.test");  <-- 이거 삭제
+        // ✅ 이제: GUI 열기 패킷 전송
+        if (player instanceof ServerPlayer sp) {
+            ModNetwork.sendToPlayer(sp, new OpenMusicGuiPacket(pos, musicBe.getSoundKey()));
+        }
+
+        return InteractionResult.CONSUME;
     }
 
     @Override
@@ -50,7 +52,7 @@ public class MusicPlayerBlock extends Block implements EntityBlock {
         super.onPlace(state, level, pos, oldState, isMoving);
 
         if (!level.isClientSide && level instanceof ServerLevel sl) {
-            MusicBlockIndex.get(sl).add(sl, pos); // ✅ 이게 핵심
+            MusicBlockIndex.get(sl).add(sl, pos); // ✅ 유지 (핵심)
         }
     }
 
@@ -59,9 +61,8 @@ public class MusicPlayerBlock extends Block implements EntityBlock {
         super.onRemove(state, level, pos, newState, isMoving);
 
         if (!level.isClientSide && level instanceof ServerLevel sl) {
-            // "같은 블록이 단순 상태 변경"이 아니라 진짜 블록이 바뀌는 경우만
             if (state.getBlock() != newState.getBlock()) {
-                MusicBlockIndex.get(sl).remove(sl, pos); // ✅ 이게 핵심
+                MusicBlockIndex.get(sl).remove(sl, pos); // ✅ 유지 (핵심)
             }
         }
     }
