@@ -1,5 +1,6 @@
 package com.sang.musicnpc.network;
 
+
 import com.sang.musicnpc.client.ClientMusicManager;
 import com.sang.musicnpc.registry.ModSounds;
 import net.minecraft.network.FriendlyByteBuf;
@@ -12,7 +13,7 @@ import java.util.function.Supplier;
 
 public class PlayNpcMusicPacket {
 
-    private final String soundKey;   // 예: "music_test", stop이면 ""
+    private final String soundKey;   // ✅ "music_test" 같은 등록명. stop이면 ""
     private final boolean keepAlive;
 
     public PlayNpcMusicPacket(String soundKey) {
@@ -36,9 +37,9 @@ public class PlayNpcMusicPacket {
     }
 
     public static void handle(PlayNpcMusicPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        NetworkEvent.Context c = ctx.get();
-        c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            // ✅ 반경 신호 갱신
+        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+
+            // ✅ 서버에서 신호 받았다는 기록 (inRange 판단)
             ClientMusicManager.onServerSignal();
 
             // stop
@@ -47,29 +48,14 @@ public class PlayNpcMusicPacket {
                 return;
             }
 
-            SoundEvent sound = resolveSound(msg.soundKey);
-            if (sound == null) return;
+            SoundEvent sound = ModSounds.resolveByKey(msg.soundKey);
+            if (sound != null) {
+                ClientMusicManager.onServerMusicDesired(sound);
 
-            // ✅ 원하는 곡 저장
-            ClientMusicManager.onServerMusicDesired(sound);
-
-            // ✅ keepAlive든 스위치든 “실제 재생”을 시도
-            //    (볼륨 0이면 인스턴스만 정리되고 desired는 유지됨)
-            ClientMusicManager.play(sound);
-
-            // ✅ 볼륨이 살아있는데 재생이 죽었으면 즉시 복구
-            if (msg.keepAlive) {
+                // ✅ keepAlive든 switch든, 재생이 죽었으면 즉시 복구
                 ClientMusicManager.tryRecoverNow();
             }
         }));
-        c.setPacketHandled(true);
-    }
-
-    private static SoundEvent resolveSound(String key) {
-        return switch (key) {
-            case "music_test" -> ModSounds.MUSIC_TEST.get();
-            case "music_maple" -> ModSounds.MUSIC_MAPLE.get();
-            default -> null;
-        };
+        ctx.get().setPacketHandled(true);
     }
 }

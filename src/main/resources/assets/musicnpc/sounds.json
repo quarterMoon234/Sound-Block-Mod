@@ -1,18 +1,12 @@
 {
   "music_test": {
     "sounds": [
-      {
-        "name": "musicnpc:music/test",
-        "stream": true
-      }
+      { "name": "musicnpc:music/test", "stream": true }
     ]
   },
   "music_maple": {
     "sounds": [
-      {
-        "name": "musicnpc:music/maple",
-        "stream": true
-      }
+      { "name": "musicnpc:music/maple", "stream": true }
     ]
   }
 }

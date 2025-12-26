@@ -1,22 +1,23 @@
 package com.sang.musicnpc.network;
 
-
 import com.sang.musicnpc.client.screen.MusicSelectScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
 public class OpenMusicGuiPacket {
 
-    private final BlockPos pos;
-    private final String currentKey;
+    public final BlockPos pos;
+    public final String currentKey;
 
     public OpenMusicGuiPacket(BlockPos pos, String currentKey) {
         this.pos = pos;
-        this.currentKey = currentKey == null ? "music_test" : currentKey;
+        this.currentKey = currentKey == null ? "" : currentKey;
     }
 
     public static void encode(OpenMusicGuiPacket msg, FriendlyByteBuf buf) {
@@ -31,11 +32,11 @@ public class OpenMusicGuiPacket {
     }
 
     public static void handle(OpenMusicGuiPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
+        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null) return;
-            mc.setScreen(new MusicSelectScreen(msg.pos, msg.currentKey));
-        });
+            if (mc == null) return;
+            mc.setScreen(new MusicSelectScreen(msg.pos, msg.currentKey)); // ✅ 생성자 시그니처 일치
+        }));
         ctx.get().setPacketHandled(true);
     }
 }
