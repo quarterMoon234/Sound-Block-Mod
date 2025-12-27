@@ -2,7 +2,6 @@ package com.sang.musicnpc.server;
 
 import com.sang.musicnpc.MusicNpc;
 import com.sang.musicnpc.network.ModNetwork;
-import com.sang.musicnpc.network.PlayNpcMusicPacket;
 import com.sang.musicnpc.registry.ModBlocks;
 import com.sang.musicnpc.registry.MusicPlayerBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -122,7 +121,7 @@ public class ServerMusicScanner {
                 st.lastKeepAliveGameTime = gameTime;
                 ModNetwork.CHANNEL.send(
                         PacketDistributor.PLAYER.with(() -> player),
-                        new PlayNpcMusicPacket(best.soundKey, true) // ✅ keepAlive=true
+                        new com.sang.musicnpc.network.PlayNpcMusicPacket(best.soundKey, true) // ✅ keepAlive=true
                 );
             }
             return;
@@ -156,7 +155,7 @@ public class ServerMusicScanner {
 
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new PlayNpcMusicPacket(best.soundKey, false)
+                new com.sang.musicnpc.network.PlayNpcMusicPacket(best.soundKey, false)
         );
     }
 
@@ -183,14 +182,14 @@ public class ServerMusicScanner {
 
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new PlayNpcMusicPacket(best.soundKey, false)
+                new com.sang.musicnpc.network.PlayNpcMusicPacket(best.soundKey, false)
         );
     }
 
     private static void sendStop(ServerPlayer player) {
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new PlayNpcMusicPacket("", false)
+                new com.sang.musicnpc.network.PlayNpcMusicPacket("", false)
         );
     }
 

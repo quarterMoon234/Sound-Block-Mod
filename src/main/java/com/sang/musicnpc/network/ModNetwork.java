@@ -11,6 +11,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
 public class ModNetwork {
 
     private static final String PROTOCOL = "1";
+    private static boolean REGISTERED = false;
+
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(MusicNpc.MODID, "main"),
             () -> PROTOCOL,
@@ -19,30 +21,29 @@ public class ModNetwork {
     );
 
     public static void register() {
+        if (REGISTERED) return;     // ✅ 중복 등록 방지
+        REGISTERED = true;
+
         int id = 0;
 
-        // ✅ S2C: 서버 -> 클라 (음악 재생/정지)
         CHANNEL.messageBuilder(PlayNpcMusicPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(PlayNpcMusicPacket::encode)
                 .decoder(PlayNpcMusicPacket::decode)
                 .consumerMainThread(PlayNpcMusicPacket::handle)
                 .add();
 
-        // ✅ S2C: GUI 열기
         CHANNEL.messageBuilder(OpenMusicGuiPacket.class, id++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(OpenMusicGuiPacket::encode)
                 .decoder(OpenMusicGuiPacket::decode)
                 .consumerMainThread(OpenMusicGuiPacket::handle)
                 .add();
 
-        // ✅ C2S: 선택 저장
         CHANNEL.messageBuilder(SetMusicKeyPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(SetMusicKeyPacket::encode)
                 .decoder(SetMusicKeyPacket::decode)
                 .consumerMainThread(SetMusicKeyPacket::handle)
                 .add();
 
-        // ✅ C2S: 리싱크 요청
         CHANNEL.messageBuilder(RequestMusicResyncPacket.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(RequestMusicResyncPacket::encode)
                 .decoder(RequestMusicResyncPacket::decode)

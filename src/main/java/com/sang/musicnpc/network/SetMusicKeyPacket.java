@@ -1,11 +1,9 @@
 package com.sang.musicnpc.network;
 
 import com.sang.musicnpc.registry.MusicPlayerBlockEntity;
-import com.sang.musicnpc.server.ServerMusicScanner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -26,7 +24,10 @@ public class SetMusicKeyPacket {
     }
 
     public static SetMusicKeyPacket decode(FriendlyByteBuf buf) {
-        return new SetMusicKeyPacket(buf.readBlockPos(), buf.readUtf());
+        return new SetMusicKeyPacket(
+                buf.readBlockPos(),
+                buf.readUtf()
+        );
     }
 
     public static void handle(SetMusicKeyPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -35,15 +36,13 @@ public class SetMusicKeyPacket {
             ServerPlayer sp = c.getSender();
             if (sp == null) return;
 
-            BlockEntity be = sp.level().getBlockEntity(msg.pos);
-            if (!(be instanceof MusicPlayerBlockEntity musicBe)) return;
+            if (sp.level().getBlockEntity(msg.pos) instanceof MusicPlayerBlockEntity be) {
+                be.setSoundKey(msg.soundKey);
+                be.setChanged();
 
-            // 1) 선택 저장
-            musicBe.setSoundKey(msg.soundKey);
-            musicBe.setChanged(); // 저장 표시
-
-            // 2) ✅ 핵심: 현재 반경 안에 있든 말든 "다음 서버틱에 무조건 재전송"
-            ServerMusicScanner.markNeedResync(sp);
+                // ✅ 중요: 저장했으면 "지금 바로 재생"을 클라로 보내기
+                ModNetwork.sendToPlayer(sp, new PlayNpcMusicPacket(msg.pos, msg.soundKey, false));
+            }
         });
         c.setPacketHandled(true);
     }

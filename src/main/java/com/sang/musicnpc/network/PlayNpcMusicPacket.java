@@ -1,10 +1,8 @@
 package com.sang.musicnpc.network;
 
-
-import com.sang.musicnpc.client.ClientMusicManager;
-import com.sang.musicnpc.registry.ModSounds;
+import com.sang.musicnpc.client.ClientPacketHandlers;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
@@ -13,49 +11,52 @@ import java.util.function.Supplier;
 
 public class PlayNpcMusicPacket {
 
-    private final String soundKey;   // ✅ "music_test" 같은 등록명. stop이면 ""
-    private final boolean keepAlive;
+    public final BlockPos pos;
+    public final String soundKey;
+    public final boolean keepAlive;
 
-    public PlayNpcMusicPacket(String soundKey) {
-        this(soundKey, false);
-    }
-
-    public PlayNpcMusicPacket(String soundKey, boolean keepAlive) {
+    public PlayNpcMusicPacket(BlockPos pos, String soundKey, boolean keepAlive) {
+        this.pos = pos;
         this.soundKey = soundKey;
         this.keepAlive = keepAlive;
     }
 
+    // 편의 생성자들 유지
+    public PlayNpcMusicPacket(String soundKey) {
+        this(BlockPos.ZERO, soundKey, false);
+    }
+
+    public PlayNpcMusicPacket(String soundKey, boolean keepAlive) {
+        this(BlockPos.ZERO, soundKey, keepAlive);
+    }
+
     public static void encode(PlayNpcMusicPacket msg, FriendlyByteBuf buf) {
+        buf.writeBlockPos(msg.pos);
         buf.writeUtf(msg.soundKey == null ? "" : msg.soundKey);
         buf.writeBoolean(msg.keepAlive);
     }
 
     public static PlayNpcMusicPacket decode(FriendlyByteBuf buf) {
-        String key = buf.readUtf();
+        BlockPos pos = buf.readBlockPos();
+        String key = buf.readUtf(32767);
         boolean keepAlive = buf.readBoolean();
-        return new PlayNpcMusicPacket(key, keepAlive);
+        if (key.isEmpty()) key = null;
+        return new PlayNpcMusicPacket(pos, key, keepAlive);
     }
 
     public static void handle(PlayNpcMusicPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+        NetworkEvent.Context c = ctx.get();
+        c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
 
-            // ✅ 서버에서 신호 받았다는 기록 (inRange 판단)
-            ClientMusicManager.onServerSignal();
+            // 1) 반경 TTL 갱신 (keepAlive든 뭐든 패킷 왔으면 갱신)
+            ClientPacketHandlers.onServerSignal();
 
-            // stop
-            if (msg.soundKey == null || msg.soundKey.isBlank()) {
-                ClientMusicManager.stopCurrent();
-                return;
-            }
+            // 2) keepAlive=true + soundKey=null => “신호만” 갱신하고 끝
+            if (msg.soundKey == null) return;
 
-            SoundEvent sound = ModSounds.resolveByKey(msg.soundKey);
-            if (sound != null) {
-                ClientMusicManager.onServerMusicDesired(sound);
-
-                // ✅ keepAlive든 switch든, 재생이 죽었으면 즉시 복구
-                ClientMusicManager.tryRecoverNow();
-            }
+            // 3) 실제 재생
+            ClientPacketHandlers.playNpcMusic(msg.pos, msg.soundKey);
         }));
-        ctx.get().setPacketHandled(true);
+        c.setPacketHandled(true);
     }
 }

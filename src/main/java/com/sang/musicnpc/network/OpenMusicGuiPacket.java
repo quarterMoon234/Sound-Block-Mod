@@ -1,7 +1,6 @@
 package com.sang.musicnpc.network;
 
-import com.sang.musicnpc.client.screen.MusicSelectScreen;
-import net.minecraft.client.Minecraft;
+import com.sang.musicnpc.client.ClientPacketHandlers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -27,16 +26,15 @@ public class OpenMusicGuiPacket {
 
     public static OpenMusicGuiPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        String key = buf.readUtf();
+        String key = buf.readUtf(32767);
         return new OpenMusicGuiPacket(pos, key);
     }
 
     public static void handle(OpenMusicGuiPacket msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc == null) return;
-            mc.setScreen(new MusicSelectScreen(msg.pos, msg.currentKey)); // ✅ 생성자 시그니처 일치
+        NetworkEvent.Context c = ctx.get();
+        c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+            ClientPacketHandlers.openMusicGui(msg.pos, msg.currentKey);
         }));
-        ctx.get().setPacketHandled(true);
+        c.setPacketHandled(true);
     }
 }

@@ -1,7 +1,6 @@
 package com.sang.musicnpc.server;
 
 import com.sang.musicnpc.network.ModNetwork;
-import com.sang.musicnpc.network.PlayNpcMusicPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.PacketDistributor;
 
@@ -74,7 +73,7 @@ public class MusicNpcTracker {
 
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new PlayNpcMusicPacket(soundKey)
+                new com.sang.musicnpc.network.PlayNpcMusicPacket(soundKey)
         );
     }
 }

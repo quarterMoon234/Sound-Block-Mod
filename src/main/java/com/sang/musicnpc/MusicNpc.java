@@ -23,22 +23,20 @@ public class MusicNpc {
     public MusicNpc() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // ✅ 레지스트리 등록 (예제 코드 전부 제거)
         ModBlocks.BLOCKS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModSounds.SOUND_EVENTS.register(modEventBus);
 
-        // ✅ 공통 셋업(네트워크 등록 등)
         modEventBus.addListener(this::commonSetup);
 
-        // ✅ Forge 게임 이벤트 버스 등록 (서버 시작 로그 같은 것)
         MinecraftForge.EVENT_BUS.register(this);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-        event.enqueueWork(ModNetwork::register);
-        LOGGER.info("[musicnpc] commonSetup done");
+        // ✅ enqueueWork로 미루지 말고 즉시 등록
+        ModNetwork.register();
+        LOGGER.info("[musicnpc] network registered");
     }
 
     @SubscribeEvent

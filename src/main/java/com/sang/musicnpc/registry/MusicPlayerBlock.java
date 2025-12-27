@@ -31,15 +31,15 @@ public class MusicPlayerBlock extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos,
                                  Player player, InteractionHand hand, BlockHitResult hit) {
 
-        if (level.isClientSide) return InteractionResult.SUCCESS;
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
 
         BlockEntity be = level.getBlockEntity(pos);
         if (!(be instanceof MusicPlayerBlockEntity musicBe)) {
             return InteractionResult.PASS;
         }
 
-        // ✅ 기존: musicBe.setSoundKey("music.test");  <-- 이거 삭제
-        // ✅ 이제: GUI 열기 패킷 전송
         if (player instanceof ServerPlayer sp) {
             ModNetwork.sendToPlayer(sp, new OpenMusicGuiPacket(pos, musicBe.getSoundKey()));
         }
